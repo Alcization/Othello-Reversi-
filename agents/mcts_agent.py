@@ -35,7 +35,7 @@ class MCTSAgent(Agent):
         super().__init__()
         self.name = "MCTSAgent"
         self.max_iter = 100  # số vòng lặp tối đa cho MCTS
-        self.max_time = 1.95  # thời gian tối đa cho MCTS (giây)
+        self.max_time = 3  # thời gian tối đa cho MCTS (giây)
 
     def copy_board(self, board):
         return np.copy(board)
@@ -79,8 +79,11 @@ class MCTSAgent(Agent):
         sim_count += trials * 2
         i = 0
         t_start = time.time()
-
-        while time.time() - t_start < self.max_time and i < self.max_iter:
+        
+        # Vòng lặp chính của MCTS
+        # Chạy cho đến khi đạt số lần mô phỏng tối đa hoặc thời gian tối đa, đảm bảo số lần ít nhất là 33 trong 6 giây
+        # và không vượt quá số lần tối đa
+        while (time.time() - t_start < 6 and i < 33) or (time.time() - t_start < self.max_time and i < self.max_iter):
             node = self.select_node(root, sim_count)
             if not check_endgame(node.board, node.turn, -node.turn)[0]:
                 self.expand_node(node)
@@ -88,6 +91,8 @@ class MCTSAgent(Agent):
             self.propagate(node, w, l, d)
             sim_count += trials * 2
             i += 1
+
+        print("Số lần mô phỏng:", i, "lần")
 
         best = max(root.children, key=lambda child: child.visits)
         return best.action
