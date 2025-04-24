@@ -35,7 +35,7 @@ class MCTSAgent(Agent):
         super().__init__()
         self.name = "MCTSAgent"
         self.max_iter = 100  # số vòng lặp tối đa cho MCTS
-        self.max_time = 3  # thời gian tối đa cho MCTS (giây)
+        self.max_time = 5  # thời gian tối đa cho MCTS (giây)
 
     def copy_board(self, board):
         return np.copy(board)
@@ -43,7 +43,7 @@ class MCTSAgent(Agent):
     def step(self, board, turn, rival):
         t0 = time.time()
         move = self.run_mcts(board, turn, rival)
-        print("Thời gian ra quyết định của Agent:", time.time() - t0)
+        # print("Thời gian ra quyết định của Agent:", time.time() - t0)
         return move
         
     # Kiểm tra một quân cờ có ổn định hay không (không bị lật)
@@ -83,7 +83,7 @@ class MCTSAgent(Agent):
         # Vòng lặp chính của MCTS
         # Chạy cho đến khi đạt số lần mô phỏng tối đa hoặc thời gian tối đa, đảm bảo số lần ít nhất là 33 trong 6 giây
         # và không vượt quá số lần tối đa
-        while (time.time() - t_start < 6 and i < 33) or (time.time() - t_start < self.max_time and i < self.max_iter):
+        while (time.time() - t_start < self.max_time and i < self.max_iter):
             node = self.select_node(root, sim_count)
             if not check_endgame(node.board, node.turn, -node.turn)[0]:
                 self.expand_node(node)
@@ -92,7 +92,7 @@ class MCTSAgent(Agent):
             sim_count += trials * 2
             i += 1
 
-        print("Số lần mô phỏng:", i, "lần")
+        # print("Số lần mô phỏng:", i, "lần")
 
         best = max(root.children, key=lambda child: child.visits)
         return best.action
@@ -165,7 +165,8 @@ class MCTSAgent(Agent):
         occupied = np.sum(board != 0)
         stage = occupied / total
         score_corner = score_stable = score_move = score_center = score_piece = 0
-        corners = [(0, 0), (0, 7), (7, 0), (7, 7)]
+        rows, cols = board.shape
+        corners = [(0, 0), (0, cols - 1), (rows - 1, 0), (rows - 1, cols - 1)]
 
         # Tính điểm bonus cho các góc
         for x, y in corners:
@@ -187,7 +188,7 @@ class MCTSAgent(Agent):
                     score_stable += 10
                 elif board[i][j] == o and self.stable(board, i, j, o):
                     score_stable -= 10
-                if i in [0, 7] or j in [0, 7]:
+                if i in [0, rows - 1] or j in [0, cols - 1]:
                     score_stable += 5
 
         # Tính điểm cho số nước đi hợp lệ
