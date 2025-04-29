@@ -1,4 +1,4 @@
- # type: ignore
+# type: ignore
 from world import World, PLAYER_1_NAME, PLAYER_2_NAME
 import argparse
 from utils import all_logging_disabled
@@ -29,7 +29,7 @@ def get_args():
         help="In autoplay mode, the maximum board size",
     )
     parser.add_argument("--display", action="store_true", default=False)
-    parser.add_argument("--display_delay", type=float, default=0.4)
+    parser.add_argument("--display_delay", type=float, default=0.3)
     parser.add_argument("--display_save", action="store_true", default=False)
     parser.add_argument("--display_save_path", type=str, default="plots/")
     parser.add_argument("--autoplay", action="store_true", default=False)
@@ -42,8 +42,9 @@ class Simulator:
     def __init__(self, args):
         self.args = args
         # Only play on even-sized boards
-        self.valid_board_sizes = [ i for i in range(self.args.board_size_min, self.args.board_size_max+1) if i % 2 == 0 ]
-        #print("Valid sizes: ",self.valid_board_sizes)
+        self.valid_board_sizes = [i for i in range(self.args.board_size_min, self.args.board_size_max + 1) if
+                                  i % 2 == 0]
+        # print("Valid sizes: ",self.valid_board_sizes)
 
     def reset(self, swap_players=False, board_size=None):
         if board_size is None:
@@ -84,8 +85,9 @@ class Simulator:
         self.args.display = False
         with all_logging_disabled():
             for i in range(self.args.autoplay_runs):
+                print(f"Running match {i + 1}/{self.args.autoplay_runs}...")
                 swap_players = i % 2 == 0
-                board_size = self.valid_board_sizes[ np.random.randint(len(self.valid_board_sizes)) ] 
+                board_size = self.valid_board_sizes[np.random.randint(len(self.valid_board_sizes))]
                 p0_score, p1_score, p0_time, p1_time = self.run(
                     swap_players=swap_players, board_size=board_size
                 )
@@ -107,11 +109,15 @@ class Simulator:
                 p2_times.extend(p1_time)
 
         logger.info(
-            f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p1_times),5)} seconds."
+            f"Complete: {self.args.autoplay_runs} match(s)."
         )
         logger.info(
-            f"Player 2, agent {self.args.player_2}, win percentage: {p2_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p2_times),5)} seconds."
+            f"Player 1, agent {self.args.player_1}, win count: {p1_win_count}, win percentage: {p1_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p1_times), 5)} seconds. Minimum turn time was {np.round(np.min(p1_times), 5)} seconds. Average turn time was {np.round(np.mean(p1_times), 5)} seconds."
         )
+        logger.info(
+            f"Player 2, agent {self.args.player_2}, win count: {p2_win_count}, win percentage: {p2_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p2_times), 5)} seconds. Minimum turn time was {np.round(np.min(p2_times), 5)} seconds. Average turn time was {np.round(np.mean(p2_times), 5)} seconds."
+        )
+
 
 if __name__ == "__main__":
     args = get_args()

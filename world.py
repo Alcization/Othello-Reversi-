@@ -68,7 +68,7 @@ class World:
             logger.info(f"Setting board size to {self.board_size}x{self.board_size}")
 
         # Initialize the game board (0: empty, 1: black disc, 2: white disc)
-        self.chess_board = np.zeros((self.board_size, self.board_size), dtype=int)
+        self.chess_board: np.ndarray = np.zeros((self.board_size, self.board_size), dtype=int)
 
         # Initialize the center discs for Reversi Othello
         mid = self.board_size // 2
@@ -113,8 +113,8 @@ class World:
             self.p1_time.append(time_taken)
 
     def step(self):
-        cur_player = self.get_current_player()
-        opponent = self.get_current_opponent()
+        cur_player: int = self.get_current_player()
+        opponent: int = self.get_current_opponent()
 
         valid_moves = get_valid_moves(self.chess_board,cur_player)
 
