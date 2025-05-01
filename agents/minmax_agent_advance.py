@@ -3,13 +3,14 @@ from store import register_agent
 import numpy as np # type: ignore
 from copy import deepcopy
 import time
-from helpers import execute_move, check_endgame, get_valid_moves
+from agents.danh_heuristics import *
 
-@register_agent("student_agent")
-class StudentAgent(Agent):
+
+@register_agent("minmax_agent_advance")
+class MinMaxAgentAdvance(Agent):
     def __init__(self):
-        super(StudentAgent, self).__init__()
-        self.name = "StudentAgent"
+        super(MinMaxAgentAdvance, self).__init__()
+        self.name = "MinMaxAgentAdvance"
         self.time_limit = 2
         self.depth = 3
 
@@ -63,7 +64,20 @@ class StudentAgent(Agent):
                     break
             return value, best_move
 
-    def evaluate_board(self, chess_board, player, opponent):
-        player_score = np.sum(chess_board == player)
-        opponent_score = np.sum(chess_board == opponent)
-        return player_score - opponent_score
+    def evaluate_board(self, chess_board: np.ndarray, player, opponent) -> float:
+        score = evaluate_score_comparison(evaluate_player_current_score(chess_board, player),
+                                          evaluate_player_current_score(chess_board, player))
+
+        mobility = evaluate_score_comparison(evaluate_mobility(chess_board, player),
+                                             evaluate_mobility(chess_board, opponent))
+
+        corners = evaluate_score_comparison(
+            count_corner_stable_disks(chess_board, player, 0),
+            count_corner_stable_disks(chess_board, opponent, 0))
+
+        stable_disks = evaluate_score_comparison(
+            evaluate_stable_disks(chess_board, player),
+            evaluate_stable_disks(chess_board, opponent))
+
+        final_score = score * 0.1 + mobility * 0.1 + corners * 0.6 + stable_disks * 0.2
+        return final_score

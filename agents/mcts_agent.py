@@ -1,6 +1,6 @@
 from agents.agent import Agent
 from store import register_agent
-import numpy as np # type: ignore
+import numpy as np
 from copy import deepcopy
 import time
 from helpers import execute_move, check_endgame, get_valid_moves, get_directions
@@ -34,7 +34,7 @@ class MCTSAgent(Agent):
     def __init__(self):
         super().__init__()
         self.name = "MCTSAgent"
-        self.max_iter = 100  # số vòng lặp tối đa cho MCTS
+        self.max_iter = 1000  # số vòng lặp tối đa cho MCTS
         self.max_time = 5  # thời gian tối đa cho MCTS (giây)
 
     def copy_board(self, board):
@@ -65,34 +65,59 @@ class MCTSAgent(Agent):
 
     # Chạy thuật toán MCTS
     def run_mcts(self, board, turn, rival):
+        import concurrent.futures
+
         root = TreeNode(board=board, turn=turn, heuristic=self.evaluate)
         self.expand_node(root)
         sim_count = 0
-        trials = 2
-        depth = 5
+        trials = 5  # Số mô phỏng song song mỗi vòng lặp
+        depth = 10
         filled = np.count_nonzero(board)
         phase = filled / (len(board) * len(board))
         randomness = 0.1 if phase < 0.5 else 0.05
-        node = self.select_node(root, sim_count)
-        w, l, d = self.simulate_game(node, sims=trials, limit=depth, eps=randomness)
-        self.propagate(node, w, l, d)
-        sim_count += trials * 2
-        i = 0
-        t_start = time.time()
-        
-        # Vòng lặp chính của MCTS
-        # Chạy cho đến khi đạt số lần mô phỏng tối đa hoặc thời gian tối đa, đảm bảo số lần ít nhất là 33 trong 6 giây
-        # và không vượt quá số lần tối đa
-        while (time.time() - t_start < self.max_time and i < self.max_iter):
-            node = self.select_node(root, sim_count)
-            if not check_endgame(node.board, node.turn, -node.turn)[0]:
-                self.expand_node(node)
-            w, l, d = self.simulate_game(node, sims=trials, limit=depth, eps=randomness)
-            self.propagate(node, w, l, d)
-            sim_count += trials * 2
-            i += 1
 
-        # print("Số lần mô phỏng:", i, "lần")
+        i = 0  # Đếm số ván mô phỏng đã chạy
+        t_start = time.time()
+
+        # Mô phỏng một ván chơi từ node hiện tại đến khi kết thúc (thắng/thua/hòa)
+        def simulate_once(node_copy):
+            board_copy = self.copy_board(node_copy.board)
+            turn_local = node_copy.turn
+            for _ in range(depth):
+                game_over, s1, s2 = check_endgame(board_copy, turn_local, -turn_local)
+                if game_over:
+                    if s1 > s2: return (1, 0, 0, node_copy)
+                    elif s1 < s2: return (0, 1, 0, node_copy)
+                    else: return (0, 0, 1, node_copy)
+                options = get_valid_moves(board_copy, turn_local)
+                if not options:
+                    turn_local = -turn_local
+                    continue
+                pick = options[np.random.randint(len(options))] if np.random.rand() < randomness else sorted(
+                    options, key=lambda mv: self.evaluate(self.do(board_copy, mv, turn_local), turn_local, -turn_local), reverse=True
+                )[0]
+                execute_move(board_copy, pick, turn_local)
+                turn_local = -turn_local
+            return (0, 0, 1, node_copy)
+
+        # Mô phỏng nhiều ván chơi song song
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            while time.time() - t_start < self.max_time and i < self.max_iter:
+                batch_nodes = []
+                for _ in range(trials):
+                    node = self.select_node(root, sim_count)
+                    if not check_endgame(node.board, node.turn, -node.turn)[0]:
+                        self.expand_node(node)
+                    batch_nodes.append(deepcopy(node))  # Tránh xung đột khi chạy song song
+
+                futures = [executor.submit(simulate_once, node) for node in batch_nodes]
+                for future in concurrent.futures.as_completed(futures):
+                    w, l, d, node_ref = future.result()
+                    self.propagate(node_ref, w, l, d)
+                    sim_count += 2
+                    i += 1  # Một lượt mô phỏng được tính là 1
+
+        print("Tổng số ván mô phỏng:", i)
 
         best = max(root.children, key=lambda child: child.visits)
         return best.action
@@ -114,37 +139,6 @@ class MCTSAgent(Agent):
                 child_node = TreeNode(board=new_state, turn=-node.turn, action=m, parent=node, heuristic=self.evaluate)
                 node.children.append(child_node)
                 break
-
-    # Mô phỏng một ván chơi từ node hiện tại đến khi kết thúc (thắng/thua/hòa)
-    def simulate_game(self, node, sims=5, limit=10, eps=0.1):
-        board_copy = self.copy_board(node.board)
-        current = node.turn
-        wins = losses = draws = 0
-
-        for _ in range(sims):
-            sim_board = self.copy_board(board_copy)
-            turn = current
-            for _ in range(limit):
-                game_over, s1, s2 = check_endgame(sim_board, turn, -turn)
-                if game_over:
-                    if s1 > s2:
-                        wins += 1
-                    elif s1 < s2:
-                        losses += 1
-                    else:
-                        draws += 1
-                    break
-                options = get_valid_moves(sim_board, turn)
-                if not options:
-                    turn = -turn
-                    continue
-                pick = options[np.random.randint(len(options))] if np.random.rand() < eps else sorted(
-                    options, key=lambda mv: self.evaluate(self.do(node.board, mv, node.turn), node.turn, -node.turn), reverse=True
-                )[0]
-                execute_move(sim_board, pick, turn)
-                turn = -turn
-
-        return wins, losses, draws
 
     # Lan truyền kết quả mô phỏng lên các node tổ tiên trong cây
     def propagate(self, node, win, loss, draw):
