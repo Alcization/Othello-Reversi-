@@ -230,4 +230,4 @@ def evaluate_score_comparison(player_score: float, opponent_score: float) -> flo
     Compare the scores of two players and return the difference.
     A positive score indicates the player is ahead, while a negative score indicates they are behind.
     """
-    return (player_score - opponent_score) / (player_score + opponent_score + 1e-6) * 100
+    return player_score - opponent_score
