@@ -12,7 +12,7 @@ class MinMaxAgentNormal(Agent):
         super(MinMaxAgentNormal, self).__init__()
         self.name = "MinMaxAgentNormal"
         self.time_limit = 2
-        self.depth = 4  # Tăng độ sâu để tận dụng heuristics
+        self.depth = 3 
         self.heuristics = Heuristics()  # Khởi tạo Heuristics
 
     def step(self, chess_board, player, opponent):

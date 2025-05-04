@@ -117,7 +117,7 @@ class MCTSAgent(Agent):
                     sim_count += 2
                     i += 1  # Một lượt mô phỏng được tính là 1
 
-        print("Tổng số ván mô phỏng:", i)
+        # print("Tổng số ván mô phỏng:", i)
 
         best = max(root.children, key=lambda child: child.visits)
         return best.action

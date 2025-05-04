@@ -4,12 +4,12 @@ from helpers import get_valid_moves, execute_move
 class Heuristics:
     def __init__(self, weights=None):
         self.weights = weights or {
-            "score": 5,          
-            "mobility": 15,      
-            "corner": 70,        
-            "stability": 20,     
+            "score": 2,          
+            "mobility": 20,      
+            "corner": 100,        
+            "stability": 40,     
             "parity": 10,
-            "edge_score": 10        
+            "edge_score": 10       
         }
         self.corner_positions = []
         self.edge_positions = []
@@ -95,13 +95,29 @@ class Heuristics:
 
     def parity_heuristic(self, board):
         empty_cells = np.sum(board == 0)
-        return 1 if empty_cells % 2 == 0 else -1
+        return empty_cells if empty_cells % 2 == 0 else -empty_cells
 
     def score_move(self, board, move, player, execute_move_fn):
-        if move not in get_valid_moves(board, player):
+        # Kiểm tra nếu nước đi không hợp lệ
+        valid_moves = get_valid_moves(board, player)
+        if move not in valid_moves:
             return -float("inf")
 
+        # Ưu tiên nước đi ở góc
+        if move in self.corner_positions:
+            return float("inf")  # Nước đi ở góc có giá trị cao nhất
+
+        # Tránh nước đi gần góc
+        near_corner_positions = [(0, 1), (1, 0), (1, 1), (0, board.shape[1] - 2), (1, board.shape[1] - 1),
+                                (board.shape[0] - 2, 0), (board.shape[0] - 1, 1), (board.shape[0] - 2, 1),
+                                (board.shape[0] - 2, board.shape[1] - 2), (board.shape[0] - 1, board.shape[1] - 2)]
+        if move in near_corner_positions:
+            return -float("inf")  # Nước đi gần góc có giá trị thấp nhất
+
+        # Sao chép bàn cờ và thực hiện nước đi
         board_copy = board.copy()
         execute_move_fn(board_copy, move, player)
+
+        # Đánh giá bàn cờ sau khi thực hiện nước đi
         opponent = 3 - player
         return self.evaluate_board(board_copy, player, opponent, get_valid_moves)
