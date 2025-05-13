@@ -96,3 +96,22 @@ optional arguments:
 ## License
 
 [MIT](LICENSE)
+
+# Supervised Neural Network Agent
+
+A new agent, `SupervisedAgent`, uses a neural network trained on historical Othello games from `othello_dataset.csv`.
+
+## Training the Agent
+
+1. Ensure `torch` is installed (see `requirements.txt`).
+2. Run the training script:
+
+```bash
+python train_supervised_agent.py
+```
+
+This will process the dataset and save a trained model (e.g., `supervised_model.pth`).
+
+## Using the Agent
+
+After training, the agent can be used in the simulator by specifying `supervised_agent` as the agent name.

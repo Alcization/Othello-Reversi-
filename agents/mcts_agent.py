@@ -1,6 +1,6 @@
 from agents.agent import Agent
 from store import register_agent
-import numpy as np
+import numpy as np #type: ignore
 from copy import deepcopy
 import time
 from helpers import execute_move, check_endgame, get_valid_moves, get_directions
